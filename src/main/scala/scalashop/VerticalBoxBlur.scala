@@ -15,7 +15,7 @@ object VerticalBoxBlurRunner {
   ) withWarmer(new Warmer.Default)
 
   def main(args: Array[String]): Unit = {
-    val radius = 3
+    val radius = 4
     val width = 1920
     val height = 1080
     val src = new Img(width, height)
@@ -25,12 +25,19 @@ object VerticalBoxBlurRunner {
     }
     println(s"sequential blur time: $seqtime ms")
 
-    val numTasks = 32
-    val partime = standardConfig measure {
-      VerticalBoxBlur.parBlur(src, dst, numTasks, radius)
+    val numTasksA = 2
+    val partimeA = standardConfig measure {
+      VerticalBoxBlur.parBlur(src, dst, numTasksA, radius)
     }
-    println(s"fork/join blur time: $partime ms")
-    println(s"speedup: ${seqtime / partime}")
+    println(s"fork/join $numTasksA time: $partimeA ms")
+    println(s"speedup: ${seqtime / partimeA}")
+
+    val numTasksB = 32
+    val partimeB = standardConfig measure {
+      VerticalBoxBlur.parBlur(src, dst, numTasksB, radius)
+    }
+    println(s"fork/join $numTasksB blur time: $partimeB ms")
+    println(s"speedup: ${seqtime / partimeB}")
   }
 
 }
@@ -65,11 +72,15 @@ object VerticalBoxBlur {
    */
   def parBlur(src: Img, dst: Img, numTasks: Int, radius: Int): Unit = {
     // TODO implement using the `task` construct and the `blur` method
-    val stripWidth: Int = src.width / numTasks
+    if (numTasks == 0)
+      blur(src, dst, 0, src.width, radius)
+    else {
+      val stripWidth: Int = src.width / numTasks
 
-    val tasks: List[java.util.concurrent.ForkJoinTask[Unit]] = ((0 until numTasks) map {case i => task(blur(src, dst, i * stripWidth, (i+1) * stripWidth, radius))}).toList
+      val tasks: List[java.util.concurrent.ForkJoinTask[Unit]] = ((0 until numTasks) map { case i => task(blur(src, dst, i * stripWidth, (i + 1) * stripWidth, radius)) }).toList
 
-    tasks map (t => t.join)
+      tasks map (t => t.join)
+    }
   }
 
 }
