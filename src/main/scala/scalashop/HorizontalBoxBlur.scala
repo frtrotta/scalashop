@@ -69,6 +69,8 @@ object HorizontalBoxBlur {
 
       val tasks: List[java.util.concurrent.ForkJoinTask[Unit]] = ((0 until numTasks) map { case i => task(blur(src, dst, i * stripHeight, (i + 1) * stripHeight, radius)) }).toList
 
+      if (src.height % numTasks > 0) blur(src, dst, src.height / numTasks * numTasks, src.height, radius)
+
       tasks map (t => t.join)
     }
   }

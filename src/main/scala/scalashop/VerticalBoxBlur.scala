@@ -79,6 +79,8 @@ object VerticalBoxBlur {
 
       val tasks: List[java.util.concurrent.ForkJoinTask[Unit]] = ((0 until numTasks) map { case i => task(blur(src, dst, i * stripWidth, (i + 1) * stripWidth, radius)) }).toList
 
+      if (src.width % numTasks > 0) blur(src, dst, src.width / numTasks * numTasks, src.width, radius)
+
       tasks map (t => t.join)
     }
   }
